@@ -3,6 +3,12 @@ release-team-status
 
 ## Overview
 
+A release version of the Iteration Team Status, showing user task allocation by User, Project & Iteration.
+
+![alt text](https://raw.github.com/wrackzone/release-team-status/master/screenshot.png "Screenshot")
+
+
+
 
 ## License
 
