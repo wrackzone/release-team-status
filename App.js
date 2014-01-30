@@ -17,7 +17,11 @@ Ext.define('CustomApp', {
                 scope : this,
                 select : function() {
                     app.reload();
+                },
+                ready : function() {
+                    app.reload();
                 }
+
             }
         });
 
