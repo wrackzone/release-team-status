@@ -188,6 +188,9 @@ Ext.define('CustomApp', {
 
         var rootNode = store.setRootNode(items);
 
+        if (app.tree)
+            app.tree.destroy();
+
         //Ext.ux.tree.TreeGrid is no longer a Ux. You can simply use a tree.TreePanel
         app.tree = Ext.create('Ext.tree.Panel', {
             title: 'Release Team Status',

@@ -332,7 +332,7 @@ var hasOwnProperty = Object.hasOwnProperty || function (obj, key) {
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-    items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
+    // items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
     launch: function() {
         //Write app code here
         app = this;
@@ -389,9 +389,9 @@ Ext.define('CustomApp', {
             });
 
             async.map( configs, app.wsapiQuery,function(err,results) {
-                console.log("UserIterationCapacity Results",results);
                 app.tasks = tasks;
                 app.capacities = _.map(results,function(r) { return r[0];});
+                console.log("app.capacities",app.capacities);
                 app.addTreeGrid();
             });
 
@@ -418,25 +418,13 @@ Ext.define('CustomApp', {
         });
     },
 
-    // sumNodes : function sn(node,key) {
-    //     console.log("node",node);
-    //     if (node.children&&node.children.length>0) {
-    //         var t = 0;
-    //         for (var c in node.children) {
-    //             t = t + app.sumNodes(c,key);
-    //         }
-    //         return t;
-    //     } else {
-    //         return _.isUndefined(node[key]) ? 0 : node[key];
-    //     }
-    // },
-
     tasksToRecs : function(tasks) {
 
         return _.map( tasks, function(task) {
 
             return {
-                "user" : task.get("Owner") ? task.get("Owner")._refObjectName : "none",
+                // "user" : task.get("Owner") ? task.get("Owner")._refObjectName : "none",
+                "user" : task.get("FormattedID"),
                 "project" : task.get("Project") ? task.get("Project")._refObjectName : "none",
                 "iteration" : task.get("Iteration") ? task.get("Iteration")._refObjectName : "none",
                 "task" : task.get("Name") ? task.get("Name") : "none",
@@ -457,9 +445,9 @@ Ext.define('CustomApp', {
 
         // group the tasks by owner, project and iteration
         var g = _.groupBy(app.tasks,function(t) { return t.get("Owner") ? t.get("Owner")._refObjectName:"none";});
-        _.each( _.keys(g),function(key){
-            var byOwner = g[key];
-            var rec = {"user": key, children: [] };
+        _.each( _.keys(g),function(okey){
+            var byOwner = g[okey];
+            var rec = {"user": okey, children: [] };
 
             var gProjects = _.groupBy( byOwner, function(t) { return t.get("Project") ? t.get("Project")._refObjectName:"none";});  
             _.each( _.keys(gProjects),function(pKey) {
@@ -471,17 +459,40 @@ Ext.define('CustomApp', {
                     var byIteration = gIterations[iKey];
                     var iRec = {user:iKey,children:app.tasksToRecs(byIteration)};
                     pRec.children.push(iRec);
+                    // for iterations we look up the capacity
+                    var icapacity = _.find(app.capacities,function(ac) {
+                        return ac.get("User")._refObjectName == okey &&
+                                ac.get("Project")._refObjectName == pKey &&
+                                ac.get("Iteration")._refObjectName == iKey;
+                    });
+                    iRec["capacity"] = icapacity ? icapacity.get("Capacity") : 0;
                 });
                 rec.children.push(pRec);
             });
             items.children.push(rec);
         });
 
-        var leaves = traverse(items).reduce(function(acc,x) {
-            if (this.isLeaf) acc.push(x);
+        var sumLevelForKey = function( node, key) {
+            var t = traverse(node).reduce( function(acc,y) {
+                if (this.key == key) acc += y;
                 return acc;
-        },[]);
-        console.log("leaves",leaves);
+            },0);
+            node[key] = t;
+        };
+
+        // use the traverse function to sum by level
+        traverse(items).forEach(function (x) {
+            // console.log("x",x,this.level,this.parent ?this.parent.level:"");
+            if (this.level===6 || this.level===4 || this.level===2) {
+                sumLevelForKey(x,"estimate");
+                sumLevelForKey(x,"todo");
+                sumLevelForKey(x,"actuals");
+            }
+            if (this.level===2 || this.level===4) {
+                sumLevelForKey(x,"capacity");   
+            }
+
+        });        
 
         //we want to setup a model and store instead of using dataUrl
         Ext.define('TreeTask', {
@@ -506,18 +517,20 @@ Ext.define('CustomApp', {
 
         var rootNode = store.setRootNode(items);
 
+        if (app.tree)
+            app.tree.destroy();
+
         //Ext.ux.tree.TreeGrid is no longer a Ux. You can simply use a tree.TreePanel
-        var tree = Ext.create('Ext.tree.Panel', {
-            title: 'Core Team Projects',
+        app.tree = Ext.create('Ext.tree.Panel', {
+            title: 'Release Team Status',
             width: 600,
             height: 300,
-            // renderTo: Ext.getBody(),
             collapsible: true,
             useArrows: true,
             rootVisible: false,
             store: store,
             multiSelect: true,
-            singleExpand: true,
+            singleExpand: false,
             //the 'columns' property is now 'headers'
             columns: [{
                 xtype: 'treecolumn', //this is so we know which column will show the tree
@@ -528,39 +541,19 @@ Ext.define('CustomApp', {
                 width:200
             },
                 { text: 'Task', flex: 1, dataIndex: 'task', sortable: true},
-                { text: 'Capacity', flex: 1, dataIndex: 'capacity', sortable: true},
-                { text: 'Estimate', flex: 1, dataIndex: 'estimate', sortable: true},
-                { text: 'ToDo', flex: 1, dataIndex: 'todo', sortable: true},
-                { text: 'Actuals', flex: 1, dataIndex: 'actuals', sortable: true }
+                { text: 'Capacity', flex: 1, dataIndex: 'capacity', align:'right', sortable: true,renderer:app.renderNumber},
+                { text: 'Estimate', flex: 1, dataIndex: 'estimate', align:'right',sortable: true,renderer:app.renderNumber},
+                { text: 'ToDo', flex: 1, dataIndex: 'todo', align:'right',sortable: true,renderer:app.renderNumber},
+                { text: 'Actuals', flex: 1, dataIndex: 'actuals', align:'right',sortable: true,renderer:app.renderNumber}
             ]
         });
     
-        app.add(tree);
+        app.add(app.tree);
 
+    },
 
-            // },{
-            //     //we must use the templateheader component so we can use a custom tpl
-            //     xtype: 'templatecolumn',
-            //     text: 'Duration',
-            //     flex: 1,
-            //     sortable: true,
-            //     dataIndex: 'duration',
-            //     align: 'center',
-            //     //add in the custom tpl for the rows
-            //     tpl: Ext.create('Ext.XTemplate', '{duration:this.formatHours}', {
-            //         formatHours: function(v) {
-            //             if (v < 1) {
-            //                 return Math.round(v * 60) + ' mins';
-            //             } else if (Math.floor(v) !== v) {
-            //                 var min = v - Math.floor(v);
-            //                 return Math.floor(v) + 'h ' + Math.round(min * 60) + 'm';
-            //             } else {
-            //                 return v + ' hour' + (v === 1 ? '' : 's');
-            //             }
-            //         }
-            //     })
-            // },{
-
+    renderNumber : function(v) { 
+        return v > 0 ? v : "";
     }
 
     
