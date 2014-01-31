@@ -34,9 +34,15 @@ Ext.define('CustomApp', {
 
         var releaseName = app.dropDown.getRecord().get("Name");
         // ["Name","Owner","Iteration","Release","Project","Estimate","ToDo"]
-        var configs = [{model:"Task",fetch:true,filters:[{property:"Release.Name",operator:"=",value:releaseName}]}];
+        var configs = [
+            {
+                model:"Task",
+                fetch:true,
+                filters:[{property:"Release.Name",operator:"=",value:releaseName}]
+            }
+        ];
+        
         async.map( configs,app.wsapiQuery,function(err,results){
-
             var tasks = results[0];
             console.log("tasks",tasks);
 
@@ -49,7 +55,7 @@ Ext.define('CustomApp', {
                 return (!_.isUndefined(ui.user) && !_.isUndefined(ui.iteration) &&
                     (!_.isNull(ui.user) && !_.isNull(ui.iteration))
                     );
-            })
+            });
             console.log("userIterations",userIterations);
 
             var configs = _.map(userIterations,function(ui) {
@@ -67,6 +73,15 @@ Ext.define('CustomApp', {
                 app.tasks = tasks;
                 app.capacities = _.map(results,function(r) { return r[0];});
                 console.log("app.capacities",app.capacities);
+
+                _.each( _.map(app.capacities,function(c){
+                    return {user:c.get("User")._refObjectName,
+                            iteration:c.get("Iteration")._refObjectName,
+                            capacity:c.get("Capacity")
+                            }
+                    }), function(c) { console.log("c",c)});
+
+
                 app.addTreeGrid();
             });
 

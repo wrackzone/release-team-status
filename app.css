@@ -1,3 +1,7 @@
 .app {
      /* Add app styles here */
 }
+
+.x-grid-row:nth-of-type(odd) .x-grid-cell {
+	background-color: #D3E8EC;
+}
