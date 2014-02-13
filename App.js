@@ -190,6 +190,7 @@ Ext.define('CustomApp', {
             fields: [
                 {name: 'user',     type: 'string'},
                 {name: 'task',     type: 'string'},
+                {name: 'load', type: 'number'},
                 {name: 'capacity', type: 'number'},
                 {name: 'estimate', type: 'number'},
                 {name: 'todo',     type: 'number'},
@@ -231,6 +232,7 @@ Ext.define('CustomApp', {
                 width:200
             },
                 { text: 'Task', flex: 1, dataIndex: 'task', sortable: true},
+                { text: 'Load', width: 50, dataIndex: 'load', align:'right', sortable: true,renderer:app.renderLoad},
                 { text: 'Capacity', flex: 1, dataIndex: 'capacity', align:'right', sortable: true,renderer:app.renderNumber},
                 { text: 'Estimate', flex: 1, dataIndex: 'estimate', align:'right',sortable: true,renderer:app.renderNumber},
                 { text: 'ToDo', flex: 1, dataIndex: 'todo', align:'right',sortable: true,renderer:app.renderNumber},
@@ -244,7 +246,20 @@ Ext.define('CustomApp', {
 
     renderNumber : function(v) { 
         return v > 0 ? v : "";
+    },
+
+    renderLoad : function(v,meta,r) { 
+        // console.log(v,a,r);
+        if (r.raw.capacity > 0) {
+            var p = (r.raw.estimate / r.raw.capacity) * 100;
+            var l = Ext.util.Format.number(p,"0%");
+            var c = ( p <= 100 ? "green" : "red");
+            meta.style = 'background-color : ' + c + ';';
+            return l;
+        }
+        return "";
     }
+
 
     
 });
