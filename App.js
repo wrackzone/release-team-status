@@ -28,67 +28,93 @@ Ext.define('CustomApp', {
         app.add(app.dropDown);
     },
 
+    // loads iterations that occur within the release timebox
+    loadIterations : function( releaseRecord, callback) {
+
+        var filter = Ext.create('Rally.data.wsapi.Filter', {
+            property: 'StartDate', operator: '>=', value: releaseRecord.raw.ReleaseStartDate});
+        filter = filter.and( Ext.create('Rally.data.wsapi.Filter', {
+            property: 'EndDate', operator: '<=', value: releaseRecord.raw.ReleaseDate}) );
+
+        var configs = [{
+            model:"Iteration",
+            fetch:true,
+            filters:[filter]
+        }];
+
+        async.map( configs, app.wsapiQuery, function(err,results) {
+            callback(null,results[0]);
+        });
+
+    },
+
+    // creates a filter to select tasks in any of the specified iterations
+    createTaskFilter : function(iterations) {
+        var filter = null;
+        _.each(iterations, function(iteration,i) {
+            var f = Ext.create('Rally.data.wsapi.Filter', {
+                property: 'Iteration', operator: '=', value: iteration.get("_ref") } );
+            filter = (i==0) ? f : filter.or(f);
+        });
+        return filter;
+    },
+
     reload : function() {
 
+        if (app.tree)
+            app.tree.destroy();
+
         console.log("release",app.dropDown.getRecord());
-
         var releaseName = app.dropDown.getRecord().get("Name");
-        // ["Name","Owner","Iteration","Release","Project","Estimate","ToDo"]
-        var configs = [
-            {
-                model:"Task",
-                fetch:true,
-                filters:[{property:"Release.Name",operator:"=",value:releaseName}]
-            }
-        ];
-        
-        async.map( configs,app.wsapiQuery,function(err,results){
-            var tasks = results[0];
-            console.log("tasks",tasks);
+        async.map([app.dropDown.getRecord()],app.loadIterations,function(err,results) {
+            var iterations = results[0];
+            if (iterations.length==0) return;
+            var taskFilter = app.createTaskFilter(iterations);
+            var taskConfig = { model:"Task", fetch:true, filters:[taskFilter]};
+            async.map( [taskConfig],app.wsapiQuery,function(err,results){
+                var tasks = results[0];
+                if (tasks.length == 0) return;
 
-            // construct query for user iteration capacity
-            var userIterations = _.map(tasks,function(t) {
-                return { user : t.get("Owner"), iteration : t.get("Iteration")};
+                // construct query for user iteration capacity
+                var userIterations = _.map(tasks,function(t) {
+                    return { user : t.get("Owner"), iteration : t.get("Iteration")};
+                });
+                userIterations = _.uniq(userIterations);
+                userIterations = _.filter(userIterations,function(ui) { 
+                    return (!_.isUndefined(ui.user) && !_.isUndefined(ui.iteration) &&
+                        (!_.isNull(ui.user) && !_.isNull(ui.iteration))
+                        );
+                });
+
+                var configs = _.map(userIterations,function(ui) {
+                    return {
+                        model:"UserIterationCapacity",
+                        fetch:true,
+                        filters:[
+                            { property : "Iteration", operator : "=", value : ui.iteration._ref },
+                            { property : "User", operator : "=", value : ui.user._ref}
+                        ]
+                    }
+                });
+
+                async.map( configs, app.wsapiQuery,function(err,results) {
+                    app.tasks = tasks;
+                    app.capacities = _.map(results,function(r) { return r[0];});
+                    // console.log("app.capacities",app.capacities);
+
+                    // _.each( _.map(app.capacities,function(c){
+                    //     return {user:c.get("User")._refObjectName,
+                    //             iteration:c.get("Iteration")._refObjectName,
+                    //             capacity:c.get("Capacity")
+                    //             }
+                    //     }), function(c) { console.log("c",c)});
+
+
+                    app.addTreeGrid();
+                });
+
             });
-            userIterations = _.uniq(userIterations);
-            userIterations = _.filter(userIterations,function(ui) { 
-                return (!_.isUndefined(ui.user) && !_.isUndefined(ui.iteration) &&
-                    (!_.isNull(ui.user) && !_.isNull(ui.iteration))
-                    );
-            });
-            console.log("userIterations",userIterations);
-
-            var configs = _.map(userIterations,function(ui) {
-                return {
-                    model:"UserIterationCapacity",
-                    fetch:true,
-                    filters:[
-                        { property : "Iteration", operator : "=", value : ui.iteration._ref },
-                        { property : "User", operator : "=", value : ui.user._ref}
-                    ]
-                }
-            });
-
-            async.map( configs, app.wsapiQuery,function(err,results) {
-                app.tasks = tasks;
-                app.capacities = _.map(results,function(r) { return r[0];});
-                console.log("app.capacities",app.capacities);
-
-                _.each( _.map(app.capacities,function(c){
-                    return {user:c.get("User")._refObjectName,
-                            iteration:c.get("Iteration")._refObjectName,
-                            capacity:c.get("Capacity")
-                            }
-                    }), function(c) { console.log("c",c)});
-
-
-                app.addTreeGrid();
-            });
-
-            
-
-        });      
-
+        });
     },
 
     // generic function to perform a web services query    
@@ -113,7 +139,6 @@ Ext.define('CustomApp', {
         return _.map( tasks, function(task) {
 
             return {
-                // "user" : task.get("Owner") ? task.get("Owner")._refObjectName : "none",
                 "user" : task.get("FormattedID"),
                 "project" : task.get("Project") ? task.get("Project")._refObjectName : "none",
                 "iteration" : task.get("Iteration") ? task.get("Iteration")._refObjectName : "none",
