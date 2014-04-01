@@ -410,7 +410,7 @@ Ext.define('CustomApp', {
                     return { user : t.get("Owner"), iteration : t.get("Iteration")};
                 });
                 userIterations = _.uniq(userIterations);
-                console.log("user iterations",userIterations);
+                // console.log("user iterations",userIterations);
                 userIterations = _.filter(userIterations,function(ui) { 
                     return (!_.isUndefined(ui.user) && !_.isUndefined(ui.iteration) &&
                         (!_.isNull(ui.user) && !_.isNull(ui.iteration))
