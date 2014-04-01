@@ -362,8 +362,9 @@ Ext.define('CustomApp', {
 
         var filter = Ext.create('Rally.data.wsapi.Filter', {
             property: 'StartDate', operator: '>=', value: releaseRecord.raw.ReleaseStartDate});
-        filter = filter.and( Ext.create('Rally.data.wsapi.Filter', {
-            property: 'EndDate', operator: '<=', value: releaseRecord.raw.ReleaseDate}) );
+        // change: only limit to iterations that start in the release timeframe.
+        // filter = filter.and( Ext.create('Rally.data.wsapi.Filter', {
+        //     property: 'EndDate', operator: '<=', value: releaseRecord.raw.ReleaseDate}) );
 
         var configs = [{
             model:"Iteration",
@@ -428,21 +429,9 @@ Ext.define('CustomApp', {
                 });
 
                 async.map( configs, app.wsapiQuery,function(err,results) {
-                    console.log("capacities",results);
                     app.tasks = tasks;
                     // app.capacities = _.map(results,function(r) { return r[0];});
                     app.capacities = _.flatten(results);
-                    console.log("capacities",app.capacities);
-                    // console.log("app.capacities",app.capacities);
-
-                    // _.each( _.map(app.capacities,function(c){
-                    //     return {user:c.get("User")._refObjectName,
-                    //             iteration:c.get("Iteration")._refObjectName,
-                    //             capacity:c.get("Capacity")
-                    //             }
-                    //     }), function(c) { console.log("c",c)});
-
-
                     app.addTreeGrid();
                 });
 
