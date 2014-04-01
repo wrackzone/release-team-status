@@ -255,7 +255,13 @@ Ext.define('CustomApp', {
                 { text: 'Estimate', flex: 1, dataIndex: 'estimate', align:'right',sortable: true,renderer:app.renderNumber},
                 { text: 'ToDo', flex: 1, dataIndex: 'todo', align:'right',sortable: true,renderer:app.renderNumber},
                 { text: 'Actuals', flex: 1, dataIndex: 'actuals', align:'right',sortable: true,renderer:app.renderNumber}
-            ]
+            ],
+            listeners : {
+                viewready : function() {
+                    this.expandAll();
+                }
+            }
+
         });
     
         app.add(app.tree);
