@@ -80,6 +80,7 @@ Ext.define('CustomApp', {
                     return { user : t.get("Owner"), iteration : t.get("Iteration")};
                 });
                 userIterations = _.uniq(userIterations);
+                console.log("user iterations",userIterations);
                 userIterations = _.filter(userIterations,function(ui) { 
                     return (!_.isUndefined(ui.user) && !_.isUndefined(ui.iteration) &&
                         (!_.isNull(ui.user) && !_.isNull(ui.iteration))
@@ -98,8 +99,11 @@ Ext.define('CustomApp', {
                 });
 
                 async.map( configs, app.wsapiQuery,function(err,results) {
+                    console.log("capacities",results);
                     app.tasks = tasks;
-                    app.capacities = _.map(results,function(r) { return r[0];});
+                    // app.capacities = _.map(results,function(r) { return r[0];});
+                    app.capacities = _.flatten(results);
+                    console.log("capacities",app.capacities);
                     // console.log("app.capacities",app.capacities);
 
                     // _.each( _.map(app.capacities,function(c){
