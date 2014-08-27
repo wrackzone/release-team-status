@@ -3,9 +3,12 @@ release-team-status
 
 ## Overview
 
-A release version of the Iteration Team Status, showing user task allocation by User, Project & Iteration.
+A release version of the Iteration Team Status, showing user task allocation by User, Project & Iteration. 
+Also displays new progress graphic for load ( estimate / capacity) and progress ( (estimate - todo) / estimate) ).
 
-![alt text](https://raw.github.com/wrackzone/release-team-status/master/screenshot.png "Screenshot")
+## Screen Shot
+
+![alt text](https://raw.github.com/RallyRonnie/release-team-status/master/screenshot.png "Screenshot")
 
 
 
@@ -16,4 +19,4 @@ AppTemplate is released under the MIT license.  See the file [LICENSE](./LICENSE
 
 ##Documentation for SDK
 
-You can find the documentation on our help [site.](https://help.rallydev.com/apps/2.0rc2/doc/)
+You can find the documentation on our help [site.](https://help.rallydev.com/apps/2.0rc3/doc/)
