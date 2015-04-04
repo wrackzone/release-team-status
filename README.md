@@ -5,6 +5,8 @@ release-team-status
 
 A release version of the Iteration Team Status, showing user task allocation by User, Project & Iteration. 
 Also displays new progress graphic for load ( estimate / capacity) and progress ( (estimate - todo) / estimate) ).
+Added "-- Ignore Release Filter --" selection in release combo. This will display current and future iterations
+for each team member.
 
 ## Screen Shot
 

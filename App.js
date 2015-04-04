@@ -3,16 +3,24 @@ var app = null;
 Ext.define('CustomApp', {
 	extend: 'Rally.app.App',
 	componentCls: 'app',
-	// items:{ html:'<a href="https://help.rallydev.com/apps/2.0rc2/doc/">App SDK 2.0rc2 Docs</a>'},
 	launch: function() {
 		//Write app code here
 		app = this;
+		app.noreleasetext = '-- Ignore Release Filter --'
 		app.addReleaseDropDown();
 	},
 
 	addReleaseDropDown: function() {
 
 		app.dropDown = Ext.create('Rally.ui.combobox.ReleaseComboBox', {
+            allowNoEntry: true,
+            noEntryValue: '/release/-1',
+            clearText: app.noreleasetext,
+            allowClear: true,
+            emptyText: 'Filter by release...',
+            context: this.getContext(),
+            defaultToCurrentTimebox: false,
+            defaultSelectionPosition: null,
 			listeners: {
 				scope: this,
 				select: function() {
@@ -30,18 +38,27 @@ Ext.define('CustomApp', {
 		app.add(app.dropDown);
 	},
 
-	// loads iterations that occur within the release timebox
+	// loads iterations that occur within the release time box, 
+	// if release is null, load current and future iterations
 	loadIterations: function(releaseRecord, callback) {
-
-		var filter = Ext.create('Rally.data.wsapi.Filter', {
-			property: 'StartDate',
-			operator: '>=',
-			value: releaseRecord.raw.ReleaseStartDate
-		});
-		// change: only limit to iterations that start in the release timeframe.
-		// filter = filter.and( Ext.create('Rally.data.wsapi.Filter', {
-		//     property: 'EndDate', operator: '<=', value: releaseRecord.raw.ReleaseDate}) );
-
+		if ( releaseRecord === null || releaseRecord.data.Name === app.noreleasetext || releaseRecord.data.Name === "Unscheduled") {
+			var filter = Ext.create('Rally.data.wsapi.Filter', {
+				property: 'EndDate',
+				operator: '>=',
+				value: new Date()
+			});
+		} else {
+			var ffilter = Ext.create('Rally.data.wsapi.Filter', {
+				property: 'StartDate',
+				operator: '>=',
+				value: releaseRecord.raw.ReleaseStartDate
+			});
+			var filter = ffilter.and(Ext.create('Rally.data.wsapi.Filter', {
+				property: 'EndDate',
+				operator: '<=',
+				value: releaseRecord.raw.ReleaseDate
+			}));
+		}
 		var configs = [{
 			model: "Iteration",
 			fetch: true,
@@ -73,8 +90,12 @@ Ext.define('CustomApp', {
 		if (app.tree)
 			app.tree.destroy();
 
-		console.log("release", app.dropDown.getRecord());
-		var releaseName = app.dropDown.getRecord().get("Name");
+//		console.log("release", app.dropDown.getRecord());
+		if (app.dropDown.getRecord() === null) {
+			var releaseName = "";
+		} else {
+			var releaseName = app.dropDown.getRecord().get("Name");
+		}
 		async.map([app.dropDown.getRecord()], app.loadIterations, function(err, results) {
 			var iterations = results[0];
 			if (iterations.length === 0) return;
@@ -86,8 +107,12 @@ Ext.define('CustomApp', {
 			};
 			async.map([taskConfig], app.wsapiQuery, function(err, results) {
 				var tasks = results[0];
-				if (tasks.length === 0) return;
-
+				if (tasks.length === 0) {
+//					console.log("no tasks");
+					app._hideMask();
+					app.noData();
+					return;
+				}
 				// construct query for user iteration capacity
 				var userIterations = _.map(tasks, function(t) {
 					return {
@@ -162,6 +187,11 @@ Ext.define('CustomApp', {
 				leaf: true
 			};
 		});
+	},
+
+	noData: function() {
+		app.tree = Ext.create('Ext.container.Container', {html:'No data found'});
+		app.add(app.tree);
 	},
 
 	addTreeGrid: function() {
@@ -365,7 +395,7 @@ Ext.define('CustomApp', {
 			}],
 			listeners: {
 				viewready: function() {
-					this.expandAll();
+//					this.expandAll();
 					app._hideMask();
 				}
 			}
