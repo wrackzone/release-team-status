@@ -171,7 +171,7 @@ function walk (root, cb, immutable) {
                     state.keys = objectKeys(state.node)
                 }
                 
-                state.isLeaf = state.keys.length == 0;
+                state.isLeaf = state.keys.length === 0;
                 
                 for (var i = 0; i < parents.length; i++) {
                     if (parents[i].node_ === node_) {
@@ -199,8 +199,7 @@ function walk (root, cb, immutable) {
         
         if (!keepGoing) return state;
         
-        if (typeof state.node == 'object'
-        && state.node !== null && !state.circular) {
+        if (typeof state.node == 'object' && state.node !== null && !state.circular) {
             parents.push(state);
             
             updateState();
@@ -216,7 +215,7 @@ function walk (root, cb, immutable) {
                 }
                 
                 child.isLast = i == state.keys.length - 1;
-                child.isFirst = i == 0;
+                child.isFirst = i === 0;
                 
                 if (modifiers.post) modifiers.post.call(state, child);
                 
@@ -264,10 +263,7 @@ function copy (src) {
         }
         else {
             var proto =
-                (src.constructor && src.constructor.prototype)
-                || src.__proto__
-                || {}
-            ;
+                (src.constructor && src.constructor.prototype) || src.__proto__ || {};
             var T = function () {};
             T.prototype = proto;
             dst = new T;
@@ -279,21 +275,21 @@ function copy (src) {
         return dst;
     }
     else return src;
-}
+};
 
 var objectKeys = Object.keys || function keys (obj) {
     var res = [];
-    for (var key in obj) res.push(key)
+    for (var key in obj) res.push(key);
     return res;
 };
 
-function toS (obj) { return Object.prototype.toString.call(obj) }
-function isDate (obj) { return toS(obj) === '[object Date]' }
-function isRegExp (obj) { return toS(obj) === '[object RegExp]' }
-function isError (obj) { return toS(obj) === '[object Error]' }
-function isBoolean (obj) { return toS(obj) === '[object Boolean]' }
-function isNumber (obj) { return toS(obj) === '[object Number]' }
-function isString (obj) { return toS(obj) === '[object String]' }
+function toS (obj) { return Object.prototype.toString.call(obj) };
+function isDate (obj) { return toS(obj) === '[object Date]' };
+function isRegExp (obj) { return toS(obj) === '[object RegExp]' };
+function isError (obj) { return toS(obj) === '[object Error]' };
+function isBoolean (obj) { return toS(obj) === '[object Boolean]' };
+function isNumber (obj) { return toS(obj) === '[object Number]' };
+function isString (obj) { return toS(obj) === '[object String]' };
 
 var isArray = Array.isArray || function isArray (xs) {
     return Object.prototype.toString.call(xs) === '[object Array]';
